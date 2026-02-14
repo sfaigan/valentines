@@ -1,0 +1,464 @@
+body {
+  font-family: 'Georgia', serif;
+  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0);
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 1.1s cubic-bezier(.2, .9, .2, 1), background 1.1s cubic-bezier(.2, .9, .2, 1);
+  will-change: opacity, background;
+}
+
+.scene {
+  position: relative;
+}
+
+.envelope-wrapper {
+  height: 570px;
+  transition: opacity 1.2s cubic-bezier(.2, .9, .2, 1), transform 1.05s cubic-bezier(.2, .9, .2, 1);
+}
+
+.envelope {
+  position: relative;
+  width: 420px;
+  height: 270px;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  background-color: #ff69b4;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, .2);
+  cursor: pointer;
+  top: 25%;
+  transition: box-shadow 0.3s ease, opacity 1.2s cubic-bezier(.2, .9, .2, 1), transform 1.05s cubic-bezier(.2, .9, .2, 1);
+}
+
+.envelope.close:hover {
+  box-shadow: 0 0 30px #f48fb1, 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Front layers should stay above letter while letter is sliding/bouncing */
+.front {
+  position: absolute;
+  z-index: 3;
+}
+
+.open .front {
+  cursor: default;
+}
+
+.flap {
+  border-left: 210px solid transparent;
+  border-right: 210px solid transparent;
+  border-bottom: 123px solid transparent;
+  border-top: 147px solid #ed3692;
+  transform-origin: top;
+  pointer-events: none;
+}
+
+/* Flap rotates behind after opening */
+.open .flap {
+  transform: rotateX(180deg);
+  transition: transform 0.4s ease, z-index 0.6s;
+  z-index: 1;
+}
+
+.close .flap {
+  transform: rotateX(0deg);
+  transition: transform 0.4s 0.6s ease, z-index 1s;
+  z-index: 5;
+}
+
+/* Pocket must remain in front of the letter while sliding out */
+.pocket {
+  border-left: 210px solid #ff69b4;
+  border-right: 210px solid #ff69b4;
+  border-bottom: 135px solid #f956ae;
+  border-top: 135px solid transparent;
+  border-bottom-left-radius: 6px;
+  border-bottom-right-radius: 6px;
+  z-index: 4;
+}
+
+.letter {
+  width: 90%;
+  height: 90%;
+  overflow: hidden;
+  position: relative;
+  top: 0;
+  background-color: #fff;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 26px rgba(0, 0, 0, .12);
+  cursor: pointer;
+  transform-origin: center center;
+  z-index: 2; /* behind pocket/front during slide */
+}
+
+.letter-inner {
+  width: 100%;
+  height: 100%;
+}
+
+.letter h2 {
+  text-align: center;
+  top: 10%;
+  position: relative;
+}
+
+/* one-time open slide (includes initial hold while flap opens) */
+.open .letter.opening:not(.pulled-out) {
+  animation: slideUpAfterFlap 0.8s ease forwards;
+  -webkit-animation: slideUpAfterFlap 0.8s ease forwards;
+  z-index: 2; /* keep behind pocket/front */
+}
+
+/* continuous bounce after opening completes */
+.open .letter.bouncing:not(.pulled-out) {
+  animation: letterBounce 2s infinite;
+  -webkit-animation: letterBounce 2s infinite;
+  z-index: 2; /* keep behind pocket/front */
+}
+
+/* pulled out overrides everything and comes above all */
+.open .letter.pulled-out {
+  animation: pullOutAndCenter 1s ease-in-out forwards !important;
+  -webkit-animation: pullOutAndCenter 1s ease-in-out forwards !important;
+  cursor: default;
+  z-index: 2;
+}
+
+.close .letter {
+  animation: none;
+  -webkit-animation: none;
+  top: 0;
+  transform: none;
+  z-index: 2;
+}
+
+.buttons {
+  position: absolute;
+  bottom: 0;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+}
+
+.no-button-wrapper {
+  position: absolute;
+  right: calc(15% - 20px);
+  bottom: calc(20% - 20px);
+  padding: 20px;
+  display: inline-block;
+  box-sizing: content-box;
+  transition: all 0.1s ease-in-out;
+}
+
+#no-button {
+  position: relative;
+  height: 50px;
+  width: 100px;
+  padding: 12px 35px;
+  background: #f8bbd0;
+  font-size: 17px;
+  font-weight: 500;
+  color: #fff;
+  border: 3px solid #f48fb1;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #f48fb1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+button.yes-button {
+  position: absolute;
+  left: 15%;
+  bottom: 20%;
+  height: 50px;
+  width: 100px;
+  padding: 12px 35px;
+  background: #f8bbd0;
+  font-size: 17px;
+  font-weight: 500;
+  color: #fff;
+  border: 3px solid #f48fb1;
+  border-radius: 8px;
+  box-shadow: 0 0 10px #f48fb1;
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+}
+
+.star {
+  position: absolute;
+  height: auto;
+  filter: drop-shadow(0 0 0 #fffdef);
+  z-index: -5;
+}
+
+.star-1 {
+  top: 20%;
+  left: 20%;
+  width: 25px;
+  transition: all 1s cubic-bezier(0.05, 0.83, 0.43, 0.96);
+}
+
+.star-2 {
+  top: 45%;
+  left: 45%;
+  width: 15px;
+  transition: all 1s cubic-bezier(0, 0.4, 0, 1.01);
+}
+
+.star-3 {
+  top: 40%;
+  left: 40%;
+  width: 5px;
+  transition: all 1s cubic-bezier(0, 0.4, 0, 1.01);
+}
+
+.star-4 {
+  top: 20%;
+  left: 40%;
+  width: 8px;
+  transition: all 0.8s cubic-bezier(0, 0.4, 0, 1.01);
+}
+
+.star-5 {
+  top: 25%;
+  left: 45%;
+  width: 15px;
+  transition: all 0.6s cubic-bezier(0, 0.4, 0, 1.01);
+}
+
+.star-6 {
+  top: 5%;
+  left: 50%;
+  width: 5px;
+  transition: all 0.8s ease;
+}
+
+button.yes-button:hover {
+  background: #f48fb1;
+  color: #fff;
+  box-shadow: 0 0 20px #f48fb1;
+}
+
+button.yes-button:hover .star {
+  filter: drop-shadow(0 0 10px #fffdef);
+  z-index: 2;
+}
+
+button.yes-button:hover .star-1 {
+  top: -80%;
+  left: -30%;
+  width: 25px;
+}
+
+button.yes-button:hover .star-2 {
+  top: -25%;
+  left: 10%;
+  width: 15px;
+}
+
+button.yes-button:hover .star-3 {
+  top: 55%;
+  left: 25%;
+  width: 5px;
+}
+
+button.yes-button:hover .star-4 {
+  top: 30%;
+  left: 80%;
+  width: 8px;
+}
+
+button.yes-button:hover .star-5 {
+  top: 25%;
+  left: 115%;
+  width: 15px;
+}
+
+button.yes-button:hover .star-6 {
+  top: 5%;
+  left: 60%;
+  width: 5px;
+}
+
+.fil0 {
+  fill: #fff83a;
+}
+
+.fireworks-canvas {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10001;
+  mix-blend-mode: normal;
+  background: transparent;
+  will-change: opacity, transform;
+  filter: brightness(1.55) saturate(1.28) contrast(1.12);
+  -webkit-filter: brightness(1.55) saturate(1.28) contrast(1.12);
+}
+
+body.fireworks-dim::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.50);
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 1.1s cubic-bezier(.2, .9, .2, 1), background 1.1s cubic-bezier(.2, .9, .2, 1);
+}
+
+body.fireworks-only::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 10000;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 1.1s cubic-bezier(.2, .9, .2, 1), background 1.1s cubic-bezier(.2, .9, .2, 1);
+}
+
+.fade-away {
+  opacity: 0 !important;
+  transform: translateY(-8px) scale(.99) !important;
+  pointer-events: none !important;
+}
+
+body.fireworks-only .envelope,
+body.fireworks-only .letter,
+body.fireworks-only .envelope-wrapper {
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(.99);
+}
+
+/* Keyframes */
+@keyframes slideUpAfterFlap {
+  0% {
+    top: 0;
+  }
+
+  50% {
+    top: 0;
+  }
+
+  /* wait while flap opens */
+  100% {
+    top: -60px;
+  }
+
+  /* then slide */
+}
+
+@-webkit-keyframes slideUpAfterFlap {
+  0% {
+    top: 0;
+  }
+
+  50% {
+    top: 0;
+  }
+
+  100% {
+    top: -60px;
+  }
+}
+
+@keyframes letterBounce {
+
+  0%,
+  20%,
+  53%,
+  100% {
+    top: -60px;
+    animation-timing-function: cubic-bezier(.215, .61, .355, 1);
+  }
+
+  40%,
+  43% {
+    top: -75px;
+    animation-timing-function: cubic-bezier(.755, .05, .855, .06);
+  }
+
+  70% {
+    top: -67.5px;
+    animation-timing-function: cubic-bezier(.755, .05, .855, .06);
+  }
+
+  80% {
+    top: -60px;
+  }
+
+  90% {
+    top: -64px;
+  }
+}
+
+@-webkit-keyframes letterBounce {
+
+  0%,
+  20%,
+  53%,
+  100% {
+    top: -60px;
+    -webkit-animation-timing-function: cubic-bezier(.215, .61, .355, 1);
+  }
+
+  40%,
+  43% {
+    top: -75px;
+    -webkit-animation-timing-function: cubic-bezier(.755, .05, .855, .06);
+  }
+
+  70% {
+    top: -67.5px;
+    -webkit-animation-timing-function: cubic-bezier(.755, .05, .855, .06);
+  }
+
+  80% {
+    top: -60px;
+  }
+
+  90% {
+    top: -64px;
+  }
+}
+
+@keyframes pullOutAndCenter {
+  0% {
+    top: -60px;
+    transform: translateY(0) scale(1);
+    z-index: 2;
+  }
+
+  50% {
+    top: -60px;
+    transform: translateY(-110%) scale(1);
+    z-index: 2;
+  }
+
+  100% {
+    top: -60px;
+    transform: translateY(0) scale(1.75);
+    z-index: 10;
+  }
+}
