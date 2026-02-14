@@ -48,7 +48,8 @@
   let _fwCtx = null;
   const _fwParticles = [];
   let _fwAnimating = false;
-  const FW_MAX_PARTICLES = 700;
+  const FW_MAX_PARTICLES = 450;
+  const _particleTextures = Object.create(null);
 
   function _ensureFwCanvas() {
     if (_fwCanvas) return;
@@ -65,6 +66,29 @@
     window.addEventListener('resize', resize);
   }
 
+  // create or reuse a small pre-rendered particle texture for a given color
+  function _getParticleTexture(color) {
+    if (_particleTextures[color]) return _particleTextures[color];
+    const size = 32;
+    const c = document.createElement('canvas');
+    c.width = size;
+    c.height = size;
+    const cx = c.getContext('2d');
+
+    // radial gradient: bright center to color to transparent
+    const g = cx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+    g.addColorStop(0, 'rgba(255,255,255,1)');
+    g.addColorStop(0.2, color);
+    g.addColorStop(0.6, color + '88');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+
+    cx.fillStyle = g;
+    cx.fillRect(0, 0, size, size);
+
+    _particleTextures[color] = c;
+    return c;
+  }
+
   function _fwAnimate(now) {
     if (!_fwAnimating) return;
     _fwAnimate._last = _fwAnimate._last || now;
@@ -72,6 +96,7 @@
     _fwAnimate._last = now;
 
     const ctx = _fwCtx;
+      ctx.imageSmoothingEnabled = true;
     ctx.clearRect(0, 0, _fwCanvas.width, _fwCanvas.height);
     ctx.globalCompositeOperation = 'lighter';
 
@@ -82,37 +107,30 @@
         _fwParticles.splice(i, 1);
         continue;
       }
+        // integrate velocity
+        p.vy += 0.025 * (dt / 16);
+        p.vx *= 0.997;
+        p.vy *= 0.997;
+        p.x += p.vx * (dt / 16);
+        p.y += p.vy * (dt / 16);
 
-      p.vy += 0.025 * (dt / 16);
-      p.vx *= 0.997;
-      p.vy *= 0.997;
-      p.x += p.vx * (dt / 16);
-      p.y += p.vy * (dt / 16);
+        const alpha = 1 - p.ttl / p.life;
+        const brightAlpha = Math.min(1, alpha * 2.0);
 
-      const alpha = 1 - p.ttl / p.life;
-      const brightAlpha = Math.min(1, alpha * 2.0);
-
-      ctx.save();
-      ctx.beginPath();
-      ctx.fillStyle = p.color;
-      ctx.shadowBlur = Math.max(4, p.size * 4);
-      ctx.shadowColor = p.color;
-      ctx.globalAlpha = brightAlpha * 0.9;
-      ctx.arc(p.x, p.y, p.size * 1.4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.fillStyle = p.color;
-      ctx.globalAlpha = brightAlpha;
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.globalAlpha = Math.min(1, brightAlpha * 0.6);
-      ctx.arc(p.x, p.y, Math.max(0.35, p.size * 0.32), 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+        // draw a pre-rendered texture for the particle (faster than arc/shadow drawing)
+        const tex = p.texture;
+        if (tex) {
+          const drawSize = Math.max(1, Math.round(p.size * 4));
+          ctx.globalAlpha = brightAlpha;
+          ctx.drawImage(tex, p.x - drawSize, p.y - drawSize, drawSize * 2, drawSize * 2);
+        } else {
+          // fallback simple circle
+          ctx.beginPath();
+          ctx.fillStyle = p.color;
+          ctx.globalAlpha = brightAlpha;
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
     }
 
     ctx.globalCompositeOperation = 'source-over';
@@ -129,7 +147,7 @@
   function spawnFireworkFast(cx, cy) {
     _ensureFwCanvas();
     const colors = ['#ffffff', '#ff5b9a', '#ff69b4', '#ffd1dc', '#ff8ab8', '#fff176', '#ffd54a'];
-    let count = Math.floor(Math.random() * 40) + 40;
+    let count = Math.floor(Math.random() * 25) + 20; // fewer particles per burst (20-44)
 
     const available = Math.max(0, FW_MAX_PARTICLES - _fwParticles.length);
     if (available <= 0) return;
@@ -138,15 +156,18 @@
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = Math.random() * 5 + 1.5;
+      const color = colors[Math.floor(Math.random() * colors.length)];
+      const size = Math.random() * 1.2 + 0.6;
       _fwParticles.push({
         x: cx,
         y: cy,
         vx: Math.cos(angle) * speed,
         vy: Math.sin(angle) * speed,
-        life: Math.random() * 700 + 400,
+        life: Math.random() * 700 + 350,
         ttl: 0,
-        size: Math.random() * 1.2 + 0.5,
-        color: colors[Math.floor(Math.random() * colors.length)]
+        size: size,
+        color: color,
+        texture: _getParticleTexture(color)
       });
     }
 

@@ -330,7 +330,7 @@ body.fireworks-only::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.9);
   z-index: 10000;
   pointer-events: none;
   opacity: 1;
